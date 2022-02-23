@@ -2,7 +2,7 @@ import torch
 
 # Type hints.
 from typing import List, Tuple
-from torch import Tensor
+from torch import Tensor, sqrt
 
 
 def hello():
@@ -405,7 +405,7 @@ def sum_positive_entries(x: Tensor) -> Tensor:
     # Replace "pass" statement with your code
     pos_sum=0
     mask = (x>0)
-    pos_sum=int(torch.sum(x[mask]))
+    pos_sum=int(sum(x[mask]))
     ##########################################################################
     #                            END OF YOUR CODE                            #
     ##########################################################################
@@ -436,7 +436,9 @@ def reshape_practice(x: Tensor) -> Tensor:
     #                      TODO: Implement this function                     #
     ##########################################################################
     # Replace "pass" statement with your code
-    pass
+    y = x.view(2,3,4)
+    y = y.permute(1,0,2)
+    y = y.reshape(3,-1)
     ##########################################################################
     #                            END OF YOUR CODE                            #
     ##########################################################################
@@ -475,7 +477,9 @@ def zero_row_min(x: Tensor) -> Tensor:
     #                      TODO: Implement this function                     #
     ##########################################################################
     # Replace "pass" statement with your code
-    pass
+    row_min_vals, row_min_idxs = x.min(dim=1)
+    x[[range(len(row_min_idxs))],row_min_idxs]=0
+    y=x
     ##########################################################################
     #                            END OF YOUR CODE                            #
     ##########################################################################
@@ -519,8 +523,7 @@ def batched_matrix_multiply_loop(x: Tensor, y: Tensor) -> Tensor:
 
     Args:
         x: Tensor of shaper (B, N, M)
-        y: Tensor of shape (B, M, P)
-
+ㄍㄐ
     Returns:
         z: Tensor of shape (B, N, P) where z[i] of shape (N, P) is the result
             of matrix multiplication between x[i] of shape (N, M) and y[i] of
@@ -531,7 +534,10 @@ def batched_matrix_multiply_loop(x: Tensor, y: Tensor) -> Tensor:
     #                      TODO: Implement this function                      #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    l=[]
+    for i in range(x.shape[0]):
+        l.append(torch.mm(x[i],y[i]))
+    z = torch.stack(l)
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -562,7 +568,7 @@ def batched_matrix_multiply_noloop(x: Tensor, y: Tensor) -> Tensor:
     #                      TODO: Implement this function                      #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    z = torch.bmm(x, y)
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################
@@ -597,7 +603,16 @@ def normalize_columns(x: Tensor) -> Tensor:
     #                      TODO: Implement this function                     #
     ##########################################################################
     # Replace "pass" statement with your code
-    pass
+    mean = torch.sum(x,axis=0)
+    mean /= x.shape[0]
+    
+    std = x-mean
+    std = std*std
+    std = torch.sum(std,axis=0)
+    std /= (x.shape[0]-1)
+    std = sqrt(std)
+    y = x-mean
+    y = y/std
     ##########################################################################
     #                            END OF YOUR CODE                            #
     ##########################################################################
@@ -644,7 +659,9 @@ def mm_on_gpu(x: Tensor, w: Tensor) -> Tensor:
     #                      TODO: Implement this function                     #
     ##########################################################################
     # Replace "pass" statement with your code
-    pass
+    x=x.cuda()
+    w=w.cuda()
+    y = x.mm(w).cpu()
     ##########################################################################
     #                            END OF YOUR CODE                            #
     ##########################################################################
