@@ -103,11 +103,13 @@ class ImageFolderDataset(Dataset):
         #     make sure to apply self.transform to the image:                  #                           
         #     image_transformed = self.transform(image)                        #
         ########################################################################
-
+        img = self.load_image_as_numpy( self.images[index] )
+        img = self.transform(img)
         data_dict = {
-            'image' : self.transform(self.load_image_as_numpy( self.images[index] )),
+            'image' : img,
             'label' : self.labels[index]
         }
+
 
         ########################################################################
         #                           END OF YOUR CODE                           #

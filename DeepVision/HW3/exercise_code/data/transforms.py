@@ -52,7 +52,9 @@ def compute_image_mean_and_std(images):
     # Hint: You can use numpy to calculate the mean and standard deviation #
     ########################################################################
 
-    pass
+    images = images.reshape(-1,3)
+    mean = images.mean(axis=0)
+    std = images.std(axis=0)
 
     ########################################################################
     #                           END OF YOUR CODE                           #
@@ -86,7 +88,8 @@ class NormalizeTransform:
         #   - divide by standard deviation                                     #
         ########################################################################
 
-        pass
+        images -= self.mean 
+        images /= self.std
 
         ########################################################################
         #                           END OF YOUR CODE                           #
