@@ -28,7 +28,9 @@ class RescaleTransform:
         #   - to (self.min, self.max)                                          #
         ########################################################################
 
-        pass
+        ratio = float((self.max - self.min )) / (self._data_max - self._data_min )
+        images *= ratio
+        images += self.min
 
         ########################################################################
         #                           END OF YOUR CODE                           #
