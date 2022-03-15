@@ -2,7 +2,9 @@
 **/.ipynb_checkpoints/
 **/datasets/
 **/models/
+**/cifar-10-batches-py/
 *.pdf
 *.gz
 *.tar
 *.zip
+*.pt
