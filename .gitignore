@@ -8,3 +8,4 @@
 *.tar
 *.zip
 *.pt
+*.DS_Store
