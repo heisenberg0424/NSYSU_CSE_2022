@@ -5,7 +5,7 @@ WARNING: you SHOULD NOT use ".to()" or ".cuda()" in each implementation block.
 import torch
 import random
 from a3_helper import svm_loss, softmax_loss
-from eecs598 import Solver
+from usefuns import Solver
 
 def hello_fully_connected_networks():
   """
@@ -41,6 +41,7 @@ class Linear(object):
     # Replace "pass" statement with your code
     out = x.view( x.shape[0],-1 )
     out = out.mm( w )
+
     out += b
     #############################################################################
     #                              END OF YOUR CODE                             #
@@ -69,7 +70,12 @@ class Linear(object):
     # TODO: Implement the linear backward pass.                                 #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    N , *other_shape= x.shape
+    db = torch.sum(dout,axis=0)
+    xt = x.view( N ,-1).t()
+    #xt = xt.to(torch.float32)
+    dw = xt.mm(dout)
+    dx = dout.mm(w.t()).reshape(N,*other_shape)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -94,7 +100,7 @@ class ReLU(object):
     # You should not change the input tensor with an in-place operation.        #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    out = torch.clamp(x,min=0)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -117,7 +123,11 @@ class ReLU(object):
     # You should not change the input tensor with an in-place operation.        #
     #############################################################################
     # Replace "pass" statement with your code
-    pass
+    
+    mask = (x<0) 
+    dx = dout.clone()
+    dx[mask] = 0
+
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -197,7 +207,10 @@ class TwoLayerNet(object):
     # weights and biases using the keys 'W2' and 'b2'.                        #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    self.params['W1'] = torch.empty(input_dim,hidden_dim,dtype=dtype,device=device).normal_(mean = 0,std = weight_scale)
+    self.params['b1'] = torch.zeros(hidden_dim,dtype=dtype,device=device)
+    self.params['W2'] = torch.empty(hidden_dim,num_classes,dtype=dtype,device=device).normal_(mean = 0,std = weight_scale)
+    self.params['b2'] = torch.zeros(num_classes,dtype=dtype,device=device)
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################
@@ -245,7 +258,11 @@ class TwoLayerNet(object):
     # class scores for X and storing them in the scores variable.             #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    
+    out1, cache1 = Linear_ReLU.forward(X,self.params['W1'],self.params['b1'])
+    scores, cache2 = Linear.forward(out1,self.params['W2'],self.params['b2'],)
+
+
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################
@@ -266,7 +283,17 @@ class TwoLayerNet(object):
     # a factor of 0.5.                                                        #
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+
+    loss, dx = softmax_loss(scores,y)
+    L2 = self.reg*((self.params["W1"]*self.params["W1"]).sum()+(self.params["W2"]*self.params["W2"]).sum())
+    loss += L2
+
+    dx , grads['W2'] , grads['b2'] = Linear.backward( dx, cache2 )
+    dx , grads['W1'] , grads['b1'] = Linear_ReLU.backward( dx, cache1)
+
+    grads['W2'] += self.reg*(self.params["W2"]*2)
+    grads['W1'] += self.reg*(self.params["W1"]*2)
+
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################
@@ -324,7 +351,15 @@ class FullyConnectedNet(object):
     # deviation equal to weight_scale. Biases should be initialized to zero.   #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    self.params['W1'] = weight_scale * torch.randn(input_dim, hidden_dims[0], dtype=dtype, device=device)
+    self.params['b1'] = torch.zeros(hidden_dims[0], dtype=dtype, device=device)
+
+    for i in range(2, self.num_layers):
+      self.params['W'+repr(i)] = weight_scale * torch.randn(hidden_dims[i-2], hidden_dims[i-1], dtype=dtype, device=device)
+      self.params['b'+repr(i)] = torch.zeros(hidden_dims[i-1], dtype=dtype, device=device)
+
+    self.params['W'+repr(self.num_layers)] = weight_scale * torch.randn(hidden_dims[self.num_layers-2], num_classes, dtype=dtype, device=device)
+    self.params['b'+repr(self.num_layers)] = torch.zeros(num_classes, dtype=dtype, device=device)
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -388,7 +423,21 @@ class FullyConnectedNet(object):
     # dropout forward pass.                                                    #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    out=[0]
+    cache=[0]
+    out_tmp, cache_tmp = Linear_ReLU.forward(X,self.params['W1'],self.params['b1'])
+    out.append(out_tmp)
+    cache.append(cache_tmp)
+
+    for i in range(2,self.num_layers):
+      out_tmp, cache_tmp = Linear_ReLU.forward(out[-1],self.params['W'+repr(i)],self.params['b'+repr(i)])
+      out.append(out_tmp)
+      cache.append(cache_tmp)
+      
+    out_tmp, cache_tmp  = Linear.forward(out[-1],self.params['W'+repr(self.num_layers)],self.params['b'+repr(self.num_layers)])
+    out.append(out_tmp)
+    cache.append(cache_tmp)
+    scores = out[-1]
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -408,7 +457,24 @@ class FullyConnectedNet(object):
     # of 0.5 to simplify the expression for the gradient.                      #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    loss, dx = softmax_loss(scores,y)
+    L2 = 0
+
+    for i in range(1,self.num_layers+1):
+      L2 += self.params['W'+repr(i)].square().sum()
+
+    L2 *= self.reg
+    loss += L2
+
+    dx , grads['W'+repr(self.num_layers)] , grads['b'+repr(self.num_layers)] = Linear.backward( dx, cache[self.num_layers] )
+    grads['W'+repr(self.num_layers)] += self.reg*(self.params['W'+repr(self.num_layers)]*2)
+
+    for i in reversed(range(1,self.num_layers)):
+      dx , grads['W'+repr(i)] , grads['b'+repr(i)] = Linear_ReLU.backward( dx, cache[i])
+      grads['W'+repr(i)] += self.reg*(self.params['W'+repr(i)]*2)
+
+    
+
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -424,7 +490,7 @@ def create_solver_instance(data_dict, dtype, device):
   ##############################################################################
   solver = None
   # Replace "pass" statement with your code
-  pass
+  solver = Solver( model , data_dict,optim_config={'learning_rate': 0.5,},lr_decay=0.95,num_epochs=10, batch_size=100,print_every=1000, device=device)
   ##############################################################################
   #                             END OF YOUR CODE                               #
   ##############################################################################
@@ -439,7 +505,8 @@ def get_three_layer_network_params():
   weight_scale = 1e-2   # Experiment with this!
   learning_rate = 1e-4  # Experiment with this!
   # Replace "pass" statement with your code
-  pass
+  weight_scale = 1e-1
+  learning_rate = 1e-1
   ############################################################################
   #                             END OF YOUR CODE                             #
   ############################################################################
@@ -454,7 +521,8 @@ def get_five_layer_network_params():
   learning_rate = 2e-3  # Experiment with this!
   weight_scale = 1e-5   # Experiment with this!
   # Replace "pass" statement with your code
-  pass
+  weight_scale = 2e-1
+  learning_rate = 1e-1
   ############################################################################
   #                             END OF YOUR CODE                             #
   ############################################################################
