@@ -492,7 +492,7 @@ def create_solver_instance(data_dict, dtype, device):
   # Replace "pass" statement with your code
   solver = Solver( model , data_dict,optim_config={'learning_rate': 0.5,},lr_decay=0.95,num_epochs=10, batch_size=100,print_every=1000, device=device)
   ##############################################################################
-  #                             END OF YOUR CODE                               #
+  #                             END OF YOUR CODE                              #
   ##############################################################################
   return solver
 
@@ -562,7 +562,8 @@ def sgd_momentum(w, dw, config=None):
   # the next_w variable. You should also use and update the velocity v.       #
   #############################################################################
   # Replace "pass" statement with your code
-  pass
+  v = config['momentum'] * v - config['learning_rate'] * dw
+  next_w = w+v
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
@@ -594,7 +595,8 @@ def rmsprop(w, dw, config=None):
   # config['cache'].                                                        #
   ###########################################################################
   # Replace "pass" statement with your code
-  pass
+  config['cache'] = config['decay_rate'] * config['cache'] + (1-config['decay_rate']) * dw * dw
+  next_w = w - config['learning_rate'] * dw / ( torch.sqrt(config['cache']) + config['epsilon'] )
   ###########################################################################
   #                             END OF YOUR CODE                            #
   ###########################################################################
@@ -633,7 +635,15 @@ def adam(w, dw, config=None):
   # using it in any calculations.                                             #
   #############################################################################
   # Replace "pass" statement with your code
-  pass
+  
+  config['m'] = config['beta1'] * config['m'] + (1-config['beta1']) * dw
+  config['v'] = config['beta2'] * config['v'] + (1-config['beta2']) * dw * dw
+  config['t'] += 1
+  m_unbias = config['m'] / (1-config['beta1'] ** config['t'])
+  v_unbias = config['v'] / (1-config['beta2'] ** config['t'])
+
+  next_w = w - config['learning_rate'] * m_unbias / ( torch.sqrt(v_unbias) + config['epsilon'] )
+  
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
