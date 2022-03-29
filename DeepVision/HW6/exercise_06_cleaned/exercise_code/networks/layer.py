@@ -132,7 +132,10 @@ class LeakyRelu:
         # TODO:                                                                #
         # Implement the forward pass of LeakyRelu activation function          #
         ########################################################################
-
+        mask = x < 0
+        outputs = x.copy()
+        outputs[mask] *= self.slope
+        cache = x
         ########################################################################
         #                           END OF YOUR CODE                           #
         ########################################################################
@@ -147,6 +150,9 @@ class LeakyRelu:
         # TODO:                                                                #
         # Implement the backward pass of LeakyRelu activation function         #
         ########################################################################
+        mask = cache < 0
+        dx = dout.copy()
+        dx[mask] *= self.slope
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -171,6 +177,11 @@ class Tanh:
         # TODO:                                                                #
         # Implement the forward pass of Tanh activation function               #
         ########################################################################
+        
+        outputs = 1 / (1 + np.exp( -2 * x))
+        outputs *= 2
+        outputs -= 1
+        cache = outputs
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -186,7 +197,8 @@ class Tanh:
         # TODO:                                                                #
         # Implement the backward pass of Tanh activation function              #
         ########################################################################
-
+        dx = 1 - cache ** 2
+        dx *= dout
         ########################################################################
         #                           END OF YOUR CODE                           #
         ########################################################################
