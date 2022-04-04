@@ -23,7 +23,7 @@ class Sigmoid:
         outputs += 1
         outputs = 1 / outputs
 
-        cache = x
+        cache = outputs
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -40,9 +40,7 @@ class Sigmoid:
         # Implement the backward pass of Sigmoid activation function           #
         ########################################################################
 
-        y = np.exp(-cache)
-        y += 1
-        y = 1 / y
+        y = cache
         dx = (1-y) * y * dout
 
         ########################################################################
