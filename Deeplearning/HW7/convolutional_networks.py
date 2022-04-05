@@ -433,7 +433,20 @@ class DeepConvNet(object):
     # to ones and zeros respectively.                                          #           
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    layers_dim = num_filters + [num_classes]
+    C,H,W = input_dims
+
+    self.params['W1'] = weight_scale * torch.randn(layers_dim[0],C,3,3,dtype=dtype,device=device)
+    self.params['b1'] = torch.zeros(layers_dim[0],dtype=dtype,device=device)
+
+    for i in range(1,len(num_filters)):
+      self.params['W'+str(i+1)] = weight_scale * torch.randn(layers_dim[i],layers_dim[i-1],3,3,dtype=dtype,device=device)
+      self.params['b'+str(i+1)] = torch.zeros(layers_dim[i],dtype=dtype,device=device)
+
+    poolsmall = 2 ** len(max_pools)
+    self.params['W'+str(i+2)] = weight_scale * torch.randn(num_filters[i] * H * W // poolsmall**2 , layers_dim[i+1],dtype=dtype,device=device)
+    self.params['b'+str(i+2)] = torch.zeros(layers_dim[i+1],dtype=dtype,device=device)
+
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -533,7 +546,19 @@ class DeepConvNet(object):
     # or the convolutional sandwich layers, to simplify your implementation.   #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    cache=[]
+    out = X
+    L2 = 0
+    for i in range(self.num_layers):
+      L2 += torch.sum(self.params['W'+str(i+1)] ** 2)
+    L2 *= self.reg
+    for i in range(self.num_layers-1):
+      out,cachetemp = Conv_ReLU_Pool.forward(out,self.params['W'+str(i+1)],self.params['b'+str(i+1)],conv_param,pool_param)
+      cache.append(cachetemp)
+    i+=1
+    scores,cachetemp = Linear.forward(out,self.params['W'+str(i+1)],self.params['b'+str(i+1)])
+    cache.append(cachetemp)
+
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -553,7 +578,8 @@ class DeepConvNet(object):
     # a factor of 0.5                                                          #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    loss, dout = softmax_loss(scores, y)
+    loss += L2
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
