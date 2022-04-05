@@ -322,7 +322,11 @@ class ThreeLayerConvNet(object):
     # Remember you can use the functions defined in your implementation above. #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    out1 , cache1 = Conv_ReLU_Pool.forward(X,W1,b1,conv_param,pool_param)
+    out = out1.view(out1.shape[0],-1)
+    out , cache2 = Linear_ReLU.forward(out,W2,b2)
+    scores , cache3 = Linear.forward(out,W3,b3)
+
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -342,7 +346,17 @@ class ThreeLayerConvNet(object):
     # a factor of 0.5                                                          #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    loss, dx = softmax_loss(scores,y)
+    L2 = self.reg*((self.params["W1"]*self.params["W1"]).sum()+(self.params["W2"]*self.params["W2"]).sum()+(self.params["W3"]*self.params["W3"]).sum())
+    loss += L2
+    dx , grads['W3'] , grads['b3'] = Linear.backward( dx, cache3 )
+    dx , grads['W2'] , grads['b2'] = Linear_ReLU.backward( dx, cache2)
+    dx = dx.view(*out1.shape)
+    dx , grads['W1'] , grads['b1'] = Conv_ReLU_Pool.backward(dx, cache1)
+
+    grads['W3'] += self.reg*(self.params["W3"]*2)
+    grads['W2'] += self.reg*(self.params["W2"]*2)
+    grads['W1'] += self.reg*(self.params["W1"]*2)
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
