@@ -436,15 +436,24 @@ class DeepConvNet(object):
     layers_dim = num_filters + [num_classes]
     C,H,W = input_dims
 
-    self.params['W1'] = weight_scale * torch.randn(layers_dim[0],C,3,3,dtype=dtype,device=device)
+    if weight_scale == 'kaiming':
+      self.params['W1'] = kaiming_initializer(layers_dim[0], C, K=3, relu=True,dtype=dtype,device=device)
+    else:
+      self.params['W1'] = weight_scale * torch.randn(layers_dim[0],C,3,3,dtype=dtype,device=device)
     self.params['b1'] = torch.zeros(layers_dim[0],dtype=dtype,device=device)
 
     for i in range(1,len(num_filters)):
-      self.params['W'+str(i+1)] = weight_scale * torch.randn(layers_dim[i],layers_dim[i-1],3,3,dtype=dtype,device=device)
+      if weight_scale == 'kaiming':
+        self.params['W'+str(i+1)] = kaiming_initializer(layers_dim[i], layers_dim[i-1], K=3, relu=True,dtype=dtype,device=device)
+      else:
+        self.params['W'+str(i+1)] = weight_scale * torch.randn(layers_dim[i],layers_dim[i-1],3,3,dtype=dtype,device=device)
       self.params['b'+str(i+1)] = torch.zeros(layers_dim[i],dtype=dtype,device=device)
 
-    poolsmall = 2 ** len(max_pools)
-    self.params['W'+str(i+2)] = weight_scale * torch.randn(num_filters[i] * H * W // poolsmall**2 , layers_dim[i+1],dtype=dtype,device=device)
+    poolsmall = 4 ** (len(max_pools))
+    if weight_scale == 'kaiming':
+      self.params['W'+str(i+2)] = kaiming_initializer((num_filters[i] * H * W )// poolsmall, layers_dim[i+1], K=None, relu=True,dtype=dtype,device=device)
+    else:
+      self.params['W'+str(i+2)] = weight_scale * torch.randn((num_filters[i] * H * W )// poolsmall , layers_dim[i+1],dtype=dtype,device=device)
     self.params['b'+str(i+2)] = torch.zeros(layers_dim[i+1],dtype=dtype,device=device)
 
     ############################################################################
@@ -546,14 +555,19 @@ class DeepConvNet(object):
     # or the convolutional sandwich layers, to simplify your implementation.   #
     ############################################################################
     # Replace "pass" statement with your code
-    cache=[]
+    cache=[0]
+    pool_cache=[0]
     out = X
     L2 = 0
     for i in range(self.num_layers):
       L2 += torch.sum(self.params['W'+str(i+1)] ** 2)
     L2 *= self.reg
+
     for i in range(self.num_layers-1):
-      out,cachetemp = Conv_ReLU_Pool.forward(out,self.params['W'+str(i+1)],self.params['b'+str(i+1)],conv_param,pool_param)
+      out,cachetemp = Conv_ReLU.forward(out,self.params['W'+str(i+1)],self.params['b'+str(i+1)],conv_param)
+      if i in self.max_pools:
+        out, poolcachetemp = FastMaxPool.forward(out, pool_param)
+        pool_cache.append(poolcachetemp)
       cache.append(cachetemp)
     i+=1
     scores,cachetemp = Linear.forward(out,self.params['W'+str(i+1)],self.params['b'+str(i+1)])
@@ -578,8 +592,21 @@ class DeepConvNet(object):
     # a factor of 0.5                                                          #
     ############################################################################
     # Replace "pass" statement with your code
-    loss, dout = softmax_loss(scores, y)
+    loss, dx = softmax_loss(scores, y)
     loss += L2
+
+    dx , grads['W'+str(i+1)] , grads['b'+str(i+1)] = Linear.backward(dx,cache[i+1])
+    grads['W'+str(i+1)] += 2 * self.reg * self.params['W'+str(i+1)]
+    
+    i-=1
+
+    while i>=0:
+      if i in self.max_pools:
+        dx = FastMaxPool.backward(dx,pool_cache.pop())
+      dx ,grads['W'+str(i+1)] , grads['b'+str(i+1)] = Conv_ReLU.backward(dx,cache[i+1])
+      grads['W'+str(i+1)] += 2 * self.reg * self.params['W'+str(i+1)]
+      i-=1
+
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -594,7 +621,8 @@ def find_overfit_parameters():
   # training accuracy within 30 epochs.                                      #
   ############################################################################
   # Replace "pass" statement with your code
-  pass
+  weight_scale = 2e-1   # Experiment with this!
+  learning_rate = 1e-3  
   ############################################################################
   #                             END OF YOUR CODE                             #
   ############################################################################
@@ -608,7 +636,23 @@ def create_convolutional_solver_instance(data_dict, dtype, device):
   # TODO: Train the best DeepConvNet that you can on CIFAR-10 within 60 seconds. #
   ################################################################################
   # Replace "pass" statement with your code
-  pass
+  input_dims = data_dict['X_train'].shape[1:]
+  model = DeepConvNet(input_dims=input_dims, num_classes=10,
+                      num_filters=([16,16,64,64,128,128]),
+                      max_pools=[1,3,5],
+                      weight_scale='kaiming',
+                      reg=1e-5, 
+                      dtype=dtype,
+                      device=device
+                      )
+
+  solver = Solver(model, data_dict,
+                  num_epochs=20, batch_size=128,
+                  update_rule=adam,
+                  optim_config={
+                    'learning_rate': 1e-3,
+                  },
+                  print_every=100, device= device)
   ################################################################################
   #                              END OF YOUR CODE                                #
   ################################################################################
@@ -647,7 +691,10 @@ def kaiming_initializer(Din, Dout, K=None, relu=True, device='cpu',
     # The output should be a tensor in the designated size, dtype, and device.#
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    if relu :
+      weight = (2/Din)**(1/2) * torch.randn(Din, Dout, dtype=dtype, device=device)
+    else:
+      weight = (1/Din)**(1/2) * torch.randn(Din, Dout, dtype=dtype, device=device)
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################
@@ -660,7 +707,10 @@ def kaiming_initializer(Din, Dout, K=None, relu=True, device='cpu',
     # The output should be a tensor in the designated size, dtype, and device.#
     ###########################################################################
     # Replace "pass" statement with your code
-    pass
+    if relu :
+      weight = (2/(Din*K*K))**(1/2) * torch.randn(Din, Dout, K, K, dtype=dtype, device=device)
+    else:
+      weight = (1/(Din*K*K))**(1/2) * torch.randn(Din, Dout, K, K, dtype=dtype, device=device)
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################

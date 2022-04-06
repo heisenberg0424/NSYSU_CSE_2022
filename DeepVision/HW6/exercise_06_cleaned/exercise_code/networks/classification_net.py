@@ -167,7 +167,7 @@ class MyOwnNetwork(ClassificationNet):
     functionality! (Without renaming class functions though ;))
     """
 
-    def __init__(self, activation=Sigmoid(), num_layer=2,
+    def __init__(self, activation=LeakyRelu(), num_layer=2,
                  input_size=3 * 32 * 32, hidden_size=100,
                  std=1e-3, num_classes=10, reg=0, **kwargs):
         """
@@ -247,7 +247,6 @@ class MyOwnNetwork(ClassificationNet):
         ########################################################################
         #                           END OF YOUR CODE                           #
         ########################################################################
-        return out
 
     def backward(self, dy):
         grads = None
@@ -281,5 +280,4 @@ class MyOwnNetwork(ClassificationNet):
         ########################################################################
         #                           END OF YOUR CODE                           #
         ########################################################################
-        return grads
 
