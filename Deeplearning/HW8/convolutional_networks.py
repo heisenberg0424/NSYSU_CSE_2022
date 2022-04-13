@@ -456,6 +456,11 @@ class DeepConvNet(object):
       self.params['W'+str(i+2)] = weight_scale * torch.randn((num_filters[i] * H * W )// poolsmall , layers_dim[i+1],dtype=dtype,device=device)
     self.params['b'+str(i+2)] = torch.zeros(layers_dim[i+1],dtype=dtype,device=device)
 
+    if self.batchnorm == True:
+        for i in range(len(num_filters)):
+            self.params['gamma'+str(i+1)] = torch.ones(layers_dim[i]).to(dtype).to(device)
+            self.params['beta' +str(i+1)] = torch.zeros(layers_dim[i]).to(dtype).to(device)
+
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -562,9 +567,12 @@ class DeepConvNet(object):
     for i in range(self.num_layers):
       L2 += torch.sum(self.params['W'+str(i+1)] ** 2)
     L2 *= self.reg
-
+    
     for i in range(self.num_layers-1):
-      out,cachetemp = Conv_ReLU.forward(out,self.params['W'+str(i+1)],self.params['b'+str(i+1)],conv_param)
+      if self.batchnorm:
+        out,cachetemp = Conv_BatchNorm_ReLU.forward(out,self.params['W'+str(i+1)],self.params['b'+str(i+1)],self.params['gamma'+str(i+1)],self.params['beta'+str(i+1)],conv_param,self.bn_params[i])
+      else:
+        out,cachetemp = Conv_ReLU.forward(out,self.params['W'+str(i+1)],self.params['b'+str(i+1)],conv_param)
       if i in self.max_pools:
         out, poolcachetemp = FastMaxPool.forward(out, pool_param)
         pool_cache.append(poolcachetemp)
@@ -595,7 +603,7 @@ class DeepConvNet(object):
     loss, dx = softmax_loss(scores, y)
     loss += L2
 
-    dx , grads['W'+str(i+1)] , grads['b'+str(i+1)] = Linear.backward(dx,cache[i+1])
+    dx , grads['W'+str(i+1)] , grads['b'+str(i+1)] = Linear.backward(dx,cache.pop())
     grads['W'+str(i+1)] += 2 * self.reg * self.params['W'+str(i+1)]
     
     i-=1
@@ -603,7 +611,11 @@ class DeepConvNet(object):
     while i>=0:
       if i in self.max_pools:
         dx = FastMaxPool.backward(dx,pool_cache.pop())
-      dx ,grads['W'+str(i+1)] , grads['b'+str(i+1)] = Conv_ReLU.backward(dx,cache[i+1])
+      
+      if self.batchnorm:
+        dx ,grads['W'+str(i+1)] , grads['b'+str(i+1)] , grads['gamma'+str(i+1)] , grads['beta'+str(i+1)] = Conv_BatchNorm_ReLU.backward(dx,cache.pop())
+      else: 
+        dx ,grads['W'+str(i+1)] , grads['b'+str(i+1)] = Conv_ReLU.backward(dx,cache.pop())
       grads['W'+str(i+1)] += 2 * self.reg * self.params['W'+str(i+1)]
       i-=1
 
@@ -641,6 +653,7 @@ def create_convolutional_solver_instance(data_dict, dtype, device):
                       num_filters=([16,16,64,64,128,128]),
                       max_pools=[1,3,5],
                       weight_scale='kaiming',
+                      batchnorm=True,
                       reg=1e-5, 
                       dtype=dtype,
                       device=device

@@ -39,7 +39,7 @@ class Linear(object):
     # will need to reshape the input into rows.                                 #
     #############################################################################
     # Replace "pass" statement with your code
-    out = x.view( x.shape[0],-1 )
+    out = x.detach().contiguous().view( x.shape[0],-1 )
     out = out.mm( w )
 
     out += b
@@ -72,7 +72,7 @@ class Linear(object):
     # Replace "pass" statement with your code
     N , *other_shape= x.shape
     db = torch.sum(dout,axis=0)
-    xt = x.view( N ,-1).t()
+    xt = x.detach().contiguous().view( N ,-1).t()
     #xt = xt.to(torch.float32)
     dw = xt.mm(dout)
     dx = dout.mm(w.t()).reshape(N,*other_shape)
