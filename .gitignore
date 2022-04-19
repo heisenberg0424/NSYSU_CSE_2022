@@ -3,6 +3,7 @@
 **/datasets/
 **/models/
 **/cifar-10-batches-py/
+**/lightning_logs/
 *.pdf
 *.gz
 *.tar

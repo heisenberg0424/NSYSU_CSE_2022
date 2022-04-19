@@ -26,24 +26,12 @@ class Encoder(nn.Module):
         # TODO: Initialize your encoder!                                         #
         ########################################################################
 
-
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(1,16,3,1,1),
-            nn.ReLU(),
-            nn.MaxPool2d(2)
-        )
-
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(16,hparams['outchannel'],3,1,1),
-            nn.ReLU(),
-            nn.MaxPool2d(2)
-        )
-        def en(x):
-            x = self.conv1(x)
-            x = self.conv2(x)
-            return x
         
-        self.encoder = en
+        self.encoder = nn.Sequential(
+            nn.Linear(input_size,512),
+            nn.ReLU(),
+            nn.Linear(512,self.hparams['hidden'])
+        )
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -68,7 +56,12 @@ class Decoder(nn.Module):
         ########################################################################
 
 
-        pass
+        self.decoder = nn.Sequential(
+            nn.Linear(self.hparams['hidden'],512),
+            nn.ReLU(),
+            nn.Linear(512,output_size),
+            #nn.Tanh()
+        )
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -83,13 +76,13 @@ class Autoencoder(pl.LightningModule):
 
     def __init__(self, hparams, encoder, decoder, train_set, val_set, logger):
         super().__init__()
-        self.hparams = hparams
+        self.hparam = hparams
         # set hyperparams
         self.encoder = encoder
         self.decoder = decoder
         self.train_set = train_set
         self.val_set = val_set
-        self.logger = logger
+        self.loggerr = logger
 
     def forward(self, x):
         reconstruction = None
@@ -99,8 +92,8 @@ class Autoencoder(pl.LightningModule):
         #  of the input.                                                       #
         ########################################################################
 
-
-        pass
+        out = self.encoder(x)
+        reconstruction = self.decoder(out)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -143,15 +136,15 @@ class Autoencoder(pl.LightningModule):
             images[i, 0] = reconstruction[i]
             images[i, 2] = reconstruction[i]
             images[i, 1] = reconstruction[i]
-        self.logger.experiment.add_images(
+        self.loggerr.experiment.add_images(
             'reconstructions', images, self.current_epoch, dataformats='NCHW')
         return loss
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(self.train_set, shuffle=True, batch_size=self.hparams['batch_size'])
+        return torch.utils.data.DataLoader(self.train_set, shuffle=True, batch_size=self.hparam['batch_size'])
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(self.val_set, batch_size=self.hparams['batch_size'])
+        return torch.utils.data.DataLoader(self.val_set, batch_size=self.hparam['batch_size'])
 
     def configure_optimizers(self):
 
@@ -160,8 +153,7 @@ class Autoencoder(pl.LightningModule):
         # TODO: Define your optimizer.                                         #
         ########################################################################
 
-
-        pass
+        optim = torch.optim.Adam(self.parameters(), lr=1e-3)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -190,10 +182,10 @@ class Autoencoder(pl.LightningModule):
 
 class Classifier(pl.LightningModule):
 
-    def __init__(self, hparam, encoder, train_set=None, val_set=None, test_set=None):
+    def __init__(self, hparams, encoder, train_set=None, val_set=None, test_set=None):
         super().__init__()
         # set hyperparams
-        self.hparam = hparam
+        self.hparam = hparams
         self.encoder = encoder
         self.model = nn.Identity()
         self.data = {'train': train_set,
@@ -204,10 +196,8 @@ class Classifier(pl.LightningModule):
         # Remember that it must have the same inputsize as the outputsize      #
         # of your encoder                                                      #
         ########################################################################
-        input_size = self.hparam['outchannel'] * 28 * 28
+
         self.model = nn.Sequential(
-            nn.Linear(input_size, self.hparam['hidden']),
-            nn.Sigmoid(),
             nn.Linear(self.hparam['hidden'], 10),
         )
 
@@ -262,13 +252,13 @@ class Classifier(pl.LightningModule):
         return {'val_loss': avg_loss, 'val_acc': acc, 'log': tensorboard_logs}
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(self.data['train'], shuffle=True, batch_size=self.hparams['batch_size'])
+        return torch.utils.data.DataLoader(self.data['train'], shuffle=True, batch_size=self.hparam['batch_size'])
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(self.data['val'], batch_size=self.hparams['batch_size'])
+        return torch.utils.data.DataLoader(self.data['val'], batch_size=self.hparam['batch_size'])
 
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(self.data['test'], batch_size=self.hparams['batch_size'])
+        return torch.utils.data.DataLoader(self.data['test'], batch_size=self.hparam['batch_size'])
 
     def configure_optimizers(self):
 
