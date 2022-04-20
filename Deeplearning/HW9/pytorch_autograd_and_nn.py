@@ -64,7 +64,11 @@ def three_layer_convnet(x, params):
   # Hint: F.linear, F.conv2d, F.relu, flatten (implemented above)                                   
   ##############################################################################
   # Replace "pass" statement with your code
-  pass
+  x = F.relu( F.conv2d(x,conv_w1,conv_b1,padding=2))
+  x = F.relu( F.conv2d(x,conv_w2,conv_b2,padding=1))
+  x = flatten(x)
+  scores = F.linear(x,fc_w,fc_b)
+
   ##############################################################################
   #                                 END OF YOUR CODE                             
   ##############################################################################
@@ -105,7 +109,20 @@ def initialize_three_layer_conv_part2(dtype=torch.float, device='cpu'):
   # You are given all the necessary variables above for initializing weights. 
   ##############################################################################
   # Replace "pass" statement with your code
-  pass
+  conv_w1 = nn.init.kaiming_normal_(torch.empty(channel_1, C, kernel_size_1, kernel_size_1, dtype=dtype, device='cuda'))
+  conv_w1.requires_grad = True
+  conv_b1 = nn.init.zeros_(torch.empty(channel_1, dtype=dtype, device='cuda'))
+  conv_b1.requires_grad = True
+
+  conv_w2 = nn.init.kaiming_normal_(torch.empty(channel_2, channel_1, kernel_size_2, kernel_size_2, dtype=dtype, device='cuda'))
+  conv_w2.requires_grad = True
+  conv_b2 = re(torch.empty(channel_2, dtype=dtype, device='cuda'))
+  conv_b2.requires_grad = True
+
+  fc_w = nn.init.kaiming_normal_(torch.empty(num_classes, channel_2*H*H, dtype=dtype, device='cuda'))
+  fc_w.requires_grad = True
+  fc_b = nn.init.zeros_(torch.empty(num_classes, dtype=dtype, device='cuda'))
+  fc_b.requires_grad = True
   ##############################################################################
   #                                 END OF YOUR CODE                            
   ##############################################################################
@@ -138,9 +155,18 @@ class ThreeLayerConvNet(nn.Module):
     # of input channels in the last fully-connected layer.              
     #                                         
     # HINT: nn.Conv2d, nn.init.kaiming_normal_, nn.init.zeros_            
-    ############################################################################
+    ###########################################################C#################
     # Replace "pass" statement with your code
-    pass
+    self.conv1 = nn.Conv2d(in_channel,channel_1,5,padding=2)
+    self.conv2 = nn.Conv2d(channel_1,channel_2,3,padding=1)
+    self.fc = nn.Linear(32*32*channel_2,num_classes)
+
+    nn.init.kaiming_normal_(self.conv1.weight)
+    nn.init.kaiming_normal_(self.conv2.weight)
+    nn.init.zeros_(self.conv1.bias)
+    nn.init.zeros_(self.conv2.bias)
+    nn.init.kaiming_normal_(self.fc.weight)
+    nn.init.zeros_(self.fc.bias)
     ############################################################################
     #                           END OF YOUR CODE                            
     ############################################################################
@@ -154,7 +180,12 @@ class ThreeLayerConvNet(nn.Module):
     # Hint: flatten (implemented at the start of part II)                          
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    x = self.conv1(x)
+    x = F.relu(x)
+    x = self.conv2(x)
+    x = F.relu(x)
+    x = flatten(x)
+    scores = self.fc(x)
     ############################################################################
     #                            END OF YOUR CODE                          
     ############################################################################
@@ -186,7 +217,8 @@ def initialize_three_layer_conv_part3():
   # momentum, with L2 weight decay of 1e-4.                    
   ##############################################################################
   # Replace "pass" statement with your code
-  pass
+  model = ThreeLayerConvNet(C,channel_1,channel_2,num_classes)
+  optimizer = optim.SGD(model.parameters(),lr = learning_rate, weight_decay=weight_decay)
   ##############################################################################
   #                                 END OF YOUR CODE                            
   ##############################################################################
@@ -244,7 +276,18 @@ def initialize_three_layer_conv_part4():
   # Hint: nn.Sequential, Flatten (implemented at the start of Part IV)   
   ####################################################################################
   # Replace "pass" statement with your code
-  pass
+  model = nn.Sequential(OrderedDict([
+    ('conv1',nn.Conv2d(C,channel_1,5,padding=2)),
+    ('relu1',nn.ReLU()),
+    ('conv2',nn.Conv2d(channel_1,channel_2,3,padding=1)),
+    ('relu2',nn.ReLU()),
+    ('flat',Flatten()),
+    ('fc',nn.Linear(32*32*channel_2,num_classes))
+  ]))
+
+  optimizer = optim.SGD(model.parameters(), lr=learning_rate, 
+                      weight_decay=weight_decay,
+                      momentum=momentum, nesterov=True)
   ################################################################################
   #                                 END OF YOUR CODE                             
   ################################################################################
