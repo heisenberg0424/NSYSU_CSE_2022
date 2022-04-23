@@ -116,7 +116,7 @@ def initialize_three_layer_conv_part2(dtype=torch.float, device='cpu'):
 
   conv_w2 = nn.init.kaiming_normal_(torch.empty(channel_2, channel_1, kernel_size_2, kernel_size_2, dtype=dtype, device='cuda'))
   conv_w2.requires_grad = True
-  conv_b2 = re(torch.empty(channel_2, dtype=dtype, device='cuda'))
+  conv_b2 = nn.init.zeros_(torch.empty(channel_2, dtype=dtype, device='cuda'))
   conv_b2.requires_grad = True
 
   fc_w = nn.init.kaiming_normal_(torch.empty(num_classes, channel_2*H*H, dtype=dtype, device='cuda'))
@@ -314,7 +314,16 @@ class PlainBlock(nn.Module):
     # Store the result in self.net.                                            
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    stride=2 if downsample else 1
+
+    self.net = nn.Sequential(
+      nn.BatchNorm2d(Cin),
+      nn.ReLU(),
+      nn.Conv2d(Cin,Cout,3,stride,1),
+      nn.BatchNorm2d(Cout),
+      nn.ReLU(),
+      nn.Conv2d(Cout,Cout,3,1,1)
+    )
     ############################################################################
     #                                 END OF YOUR CODE                         #
     ############################################################################
@@ -338,7 +347,14 @@ class ResidualBlock(nn.Module):
     # Store the main block in self.block and the shortcut in self.shortcut.    #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    self.block = PlainBlock(Cin, Cout, downsample)
+    if downsample :
+      self.shortcut = nn.Conv2d(Cin, Cout, 1, 2, 0)
+    else :
+      if Cin == Cout:
+        self.shortcut = nn.Identity()
+      else:
+        self.shortcut = nn.Conv2d(Cin, Cout, 1, 1, 0)
     ############################################################################
     #                                 END OF YOUR CODE                         #
     ############################################################################
@@ -358,7 +374,14 @@ class ResNet(nn.Module):
     # Store the model in self.cnn.                                             #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    self.stage_args = stage_args
+
+    self.cnn = nn.Sequential(
+      ResNetStem(Cin, stage_args[0][0]), #cin, cout? why 32
+      *[ResNetStage(*stage, block) for stage in stage_args]
+    )
+
+
     ############################################################################
     #                                 END OF YOUR CODE                         #
     ############################################################################
@@ -371,7 +394,13 @@ class ResNet(nn.Module):
     # Store the output in `scores`.                                            #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    pooling = nn.AdaptiveAvgPool2d(1)
+
+    x = self.cnn(x)
+    x = pooling(x)
+    x = flatten(x)
+    scores = self.fc(x)
+
     ############################################################################
     #                                 END OF YOUR CODE                         #
     ############################################################################
@@ -393,7 +422,27 @@ class ResidualBottleneckBlock(nn.Module):
     # Store the main block in self.block and the shortcut in self.shortcut.    #
     ############################################################################
     # Replace "pass" statement with your code
-    pass
+    stride=2 if downsample else 1
+
+    self.block = nn.Sequential(
+      nn.BatchNorm2d(Cin),
+      nn.ReLU(),
+      nn.Conv2d(Cin,Cout//4,1),
+      nn.BatchNorm2d(Cout//4),
+      nn.ReLU(),
+      nn.Conv2d(Cout//4,Cout//4,3,stride,1),
+      nn.BatchNorm2d(Cout//4),
+      nn.ReLU(),
+      nn.Conv2d(Cout//4,Cout,1)
+    )
+
+    if downsample :
+      self.shortcut = nn.Conv2d(Cin, Cout, 1, 2, 0)
+    else :
+      if Cin == Cout:
+        self.shortcut = nn.Identity()
+      else:
+        self.shortcut = nn.Conv2d(Cin, Cout, 1, 1, 0)
     ############################################################################
     #                                 END OF YOUR CODE                         #
     ############################################################################
