@@ -12,8 +12,10 @@ class KeypointModel(pl.LightningModule):
         Warning: Don't change the method declaration (i.e. by adding more
             arguments), otherwise it might not work on the submission server
         """
-        super(KeypointModel, self).__init__()
-        self.hparams = hparams
+        # super(KeypointModel, self).__init__()
+        #self.hparams = hparams
+        super().__init__()
+
         ########################################################################
         # TODO: Define all the layers of your CNN, the only requirements are:  #
         # 1. The network takes in a batch of images of shape (Nx1x96x96)       #
@@ -27,8 +29,28 @@ class KeypointModel(pl.LightningModule):
         # overfitting.                                                         #
         ########################################################################
 
+        self.mydesign = nn.Sequential(
+            nn.Conv2d(1,32,3,1,1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(32,64,3,1,1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(64,128,3,1,1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(128,256,3,1,1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(256,512,3,1,1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Dropout2d(),
+            nn.Flatten(),
+            nn.Linear(9*512,30)
 
-        pass
+        )
+        
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -45,13 +67,13 @@ class KeypointModel(pl.LightningModule):
         # corresponding predicted keypoints                                    #
         ########################################################################
 
-
-        pass
+        x = self.mydesign(x)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
         ########################################################################
         return x
+        
 
 
 class DummyKeypointModel(pl.LightningModule):
