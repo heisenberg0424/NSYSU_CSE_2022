@@ -364,7 +364,7 @@ class ResidualBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-  def __init__(self, stage_args, Cin=3, block=ResidualBlock, num_classes=10):
+  def __init__(self, stage_args, Cin=3, block=ResidualBlock, num_classes=100):
     super().__init__()
 
     self.cnn = None
