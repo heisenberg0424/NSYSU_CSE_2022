@@ -11,4 +11,5 @@
 *.pt
 *.DS_Store
 *.pth
+*.h5
 backup.py
