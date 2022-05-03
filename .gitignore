@@ -5,6 +5,7 @@
 **/models/
 **/cifar-10-batches-py/
 **/lightning_logs/
+**/segmentation_data/
 *.pdf
 *.gz
 *.tar
@@ -14,3 +15,5 @@
 *.pth
 *.h5
 backup.py
+DeepVision/HW10/.tmp
+DeepVision/HW10/models
