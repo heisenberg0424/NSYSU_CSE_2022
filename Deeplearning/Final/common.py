@@ -36,7 +36,6 @@ class DetectorBackboneWithFPN(nn.Module):
     def __init__(self, out_channels: int):
         super().__init__()
         self.out_channels = out_channels
-
         # Initialize with ImageNet pre-trained weights.
         _cnn = models.regnet_x_400mf(pretrained=True)
 
@@ -75,7 +74,10 @@ class DetectorBackboneWithFPN(nn.Module):
         self.fpn_params = nn.ModuleDict()
 
         # Replace "pass" statement with your code
-        pass
+        self.fpn_params['p3'] = nn.Conv2d(dummy_out_shapes[0][1][1],out_channels,1)
+        self.fpn_params['p4'] = nn.Conv2d(dummy_out_shapes[1][1][1],out_channels,1)
+        self.fpn_params['p5'] = nn.Conv2d(dummy_out_shapes[2][1][1],out_channels,1)
+        
         ################################################################
         #                      END OF YOUR CODE                        #
         ################################################################
@@ -102,7 +104,14 @@ class DetectorBackboneWithFPN(nn.Module):
         ######################################################################
 
         # Replace "pass" statement with your code
-        pass
+        fpn_feats['p5'] = self.fpn_params['p5'](backbone_feats['c5'])
+        temp = F.interpolate(fpn_feats['p5'],scale_factor=(2,2))
+        fpn_feats['p4'] = self.fpn_params['p4'](backbone_feats['c4']) + temp
+        temp = F.interpolate(fpn_feats['p4'],scale_factor=(2,2))
+        fpn_feats['p3'] = self.fpn_params['p3'](backbone_feats['c3']) + temp
+
+
+
         ################################################################
         #                      END OF YOUR CODE                        #
         ################################################################
@@ -148,7 +157,15 @@ def get_fpn_location_coords(
         # TODO: Implement logic to get location co-ordinates below.          #
         ######################################################################
         # Replace "pass" statement with your code
-        pass
+        B, C, H, W = feat_shape
+        tmp = torch.zeros((H*W,2),dtype=dtype,device=device)
+        for i in range(H):
+            for j in range(W):
+                idx = i*W+j
+                tmp[idx][0] = level_stride * (i + 0.5)
+                tmp[idx][1] = level_stride * (j + 0.5)
+        
+        location_coords[level_name]= tmp
         ######################################################################
         #                             END OF YOUR CODE                       #
         ######################################################################
