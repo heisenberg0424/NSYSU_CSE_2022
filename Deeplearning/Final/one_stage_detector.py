@@ -584,10 +584,10 @@ class FCOS(nn.Module):
         loss_cls = sigmoid_focal_loss(pred_cls_logits,onehot)
         loss_box = 0.25 * F.smooth_l1_loss(pred_boxreg_deltas,matched_gt_deltas,reduction='none')
 
-        # print('##############')
-        # print(pred_boxreg_deltas.shape)
-        # print(matched_gt_deltas.shape)
-        # print('###############')
+        print('##############')
+        print(loss_box.shape)
+        print(matched_gt_deltas.shape)
+        print('###############')
 
         loss_box[matched_gt_deltas<0] = 0
         loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits,centerness,reduction='none')

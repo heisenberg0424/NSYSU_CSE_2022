@@ -6,7 +6,7 @@ import torchvision.models as models
 from torchvision import transforms
 class SegmentationNN(pl.LightningModule):
 
-    def __init__(self, num_classes=23, hparams=None):
+    def __init__(self, num_classes=101, hparams=None):
         super().__init__()
         #self.hparams = hparams
         #######################################################################
@@ -14,10 +14,12 @@ class SegmentationNN(pl.LightningModule):
         #######################################################################
         self.num_classes = num_classes
         self.alexnet = models.alexnet(pretrained=True).features
+        for param in self.alexnet.parameters():
+            param.requires_grad = False
         self.pre = nn.Sequential(transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
         self.trans = nn.Sequential(
             nn.Conv2d(256,num_classes,1,1),
-            nn.Upsample((240,240),mode = 'bilinear'),
+            nn.Upsample((341,256),mode = 'bilinear'),
 
         )
 

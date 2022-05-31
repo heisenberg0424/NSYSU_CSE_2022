@@ -2,6 +2,7 @@
 **/.ipynb_checkpoints/
 **/datasets/
 **/data/
+**/.tmp/
 **/models/
 **/cifar-10-batches-py/
 **/lightning_logs/
@@ -22,3 +23,4 @@ bfg.jar
 DeepVision/Final/Dataset
 Deeplearning/Final/VOCdevkit/VOC2007
 Deeplearning/Final/mAP
+DeepVision/Final/Dataset/images/target

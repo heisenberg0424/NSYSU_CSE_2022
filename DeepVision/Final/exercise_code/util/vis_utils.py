@@ -10,34 +10,38 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 def visualizer(model, test_data=None):
     num_example_imgs = 4
     plt.figure(figsize=(15, 5 * num_example_imgs))
-    for i, (img, target) in enumerate(test_data[:num_example_imgs]):
-        inputs = img.unsqueeze(0)
-        inputs = inputs.to(device)
+    data = next(iter(test_data))
+    img = data[0]
+    target = data[1]
+    inputs = img
+    inputs = inputs.to(device)
 
-        outputs = model.forward(inputs)
-        _, preds = torch.max(outputs, 1)
-        pred = preds[0].data.cpu()
+    outputs = model.forward(inputs)
+    
+    _, preds = torch.max(outputs, 1)
+    pred = preds.data.cpu()
+    #pred = outputs.data.cpu()
 
-        img, target, pred = img.numpy(), target.numpy(), pred.numpy()
-
+    img, target, pred = img.numpy(), target.numpy(), pred.numpy()
         # img
+    for i in range(num_example_imgs):
         plt.subplot(num_example_imgs, 3, i * 3 + 1)
         plt.axis('off')
-        plt.imshow(img.transpose(1, 2, 0))
+        plt.imshow(img[i].transpose(1, 2, 0))
         if i == 0:
             plt.title("Input image")
 
         # target
         plt.subplot(num_example_imgs, 3, i * 3 + 2)
         plt.axis('off')
-        plt.imshow(label_img_to_rgb(target))
+        plt.imshow(label_img_to_rgb(target[i]))
         if i == 0:
             plt.title("Target image")
 
         # pred
         plt.subplot(num_example_imgs, 3, i * 3 + 3)
         plt.axis('off')
-        plt.imshow(label_img_to_rgb(pred))
+        plt.imshow(label_img_to_rgb(pred[i]))
         if i == 0:
             plt.title("Prediction image")
 
